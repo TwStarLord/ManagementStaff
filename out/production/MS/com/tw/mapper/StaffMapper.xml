@@ -1,0 +1,255 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+  <mapper namespace="com.tw.mapper.StaffMapper">
+
+	<resultMap type="staff" id="staffinfo">
+		<id property="jobid" column="jobid"/>
+		<result property="name" column="name" />
+		<result property="image" column="image" />
+		<result property="account" column="account" />
+		<result property="password" column="password" />
+		<result property="departid" column="departid" />
+		<result property="sex" column="sex"/>
+		<result property="birthday" column="birthday"/>
+		<result property="eduback" column="eduback"/>
+		<result property="mobile" column="mobile"/>
+		<result property="mail" column="mail"/>
+		<result property="address" column="address"/>
+		<result property="status" column="status"/>
+		<result property="timeforjob" column="timeforjob"/>
+		<result property="role_id" column="role_id"/>
+		<result property="descripetion" column="descripetion"/>
+		<result property="activecode" column="activecode"/>
+		<result property="salt" column="salt"/>
+		<!--这里的  association  必须放在result之后，否则会报  SAXParseException  的错误，标签顺序问题-->
+		<association property="department" column="departid"
+					 select="com.tw.mapper.DepartmentMapper.selDepartmentByDepartid" />
+			<!--<id property="departid" column="departid" />
+			<result property="departname" column="departname"/>
+			<result property="departparentid" column="departmentparentno"/>-->
+		<!-- select="com.tw.mapper.PermissionMapper.selPermissionByParentid" -->
+		<collection property="permissionUrlList" column="jobid" select="com.tw.mapper.PermissionMapper.selPermissionById" />
+		<collection property="roleList" column="jobid" select="com.tw.mapper.RoleMapper.selRoleById" />
+	</resultMap>
+
+  <!-- id:方法名 
+		parameterType:定义参数类型
+		resultType:返回值类型.
+		
+		如果方法返回值是list,在resultType中写List的泛型,因为mybatis
+		对jdbc封装,一行一行读取数据
+	-->
+
+	<select id="selCountBySex" parameterType="string" resultType="sexInfo">
+		select count(*) as value,sex as name from staff where sex = #{0}
+	</select>
+
+	<select id="selPermissionByJobId" parameterType="int" resultType="permission">
+		/*这里的*为什么不能换成percode呢，是不是因为只取了一个数据无法将数据封装到permission中去呢*/
+		select url,percode from permission where id in (
+		select permission_id from role_permission where role_id in (
+		select role_id from user_role where user_id = #{0}
+		)
+		)
+	</select>
+
+	<select id="selManagerByDepartId" parameterType="int" resultType="staff">
+		select * from staff where jobid = (
+		select user_id from user_role where role_id = (
+		select id from role where departid = #{0}
+		)
+		)
+	</select>
+
+	<select id="selByJobId" parameterType="int" resultType="staff">
+  select * from staff where jobid = #{0}
+  </select>
+
+	<select id="selAllSmile"  resultType="smile">
+		select * from smile
+	</select>
+	
+	<select id="selByDepartId"  resultType="staff">
+		select * from staff where departid = #{0}
+	</select>
+	
+    <select id="selByAccountAndPwd"  parameterType="staff"   resultType="staff">
+		select * from staff where account = #{account} and password = #{password}
+	</select>
+
+
+
+	
+	<select id="selByAccount" parameterType="java.lang.String" resultMap="staffinfo">
+	select * from staff where account = #{0}
+	</select>
+	
+	<select id="selByMail" parameterType="java.lang.String" resultType="staff">
+	select * from staff where mail = #{0}
+	</select>
+	
+	<select id="selAll" resultType="staff">
+	select * from staff
+	</select>
+	
+	<select id="selCount" resultType="long" parameterType="staff">
+	select count(*) from staff
+		<where>
+			<if test="name != null and name != ''">
+				and name like concat('%',#{name},'%')
+			</if>
+			<if test="account != null and account != ''">
+				and account like concat('%',#{account},'%')
+			</if><if test="departid != null and departid != ''">
+			and departid = #{departid}
+		</if><if test="status != null and status != ''">
+			and status = #{status}
+		</if><if test="timeforjob != null and timeforjob != ''">
+			and timeforjob  <![CDATA[ >= ]]>  #{timeforjob}
+		</if>
+		</where>
+	</select>
+	
+	<insert id="insStaff" parameterType="staff" keyProperty="jobid" useGeneratedKeys="true">
+	insert into staff(name,account,password,departid,sex,birthday,eduback,mobile,mail,address,status,timeforjob,descripetion,salt) values(#{name},#{account},#{password},#{departid},#{sex},#{birthday},#{eduback},#{mobile},#{mail},#{address},#{status},#{timeforjob},#{descripetion},#{salt})
+	</insert>
+	<insert id="insStaffRoleInfo">
+		insert into user_role(user_id,role_id) values(#{jobid},#{roleid})
+	</insert>
+
+	<select id="selByPage" resultMap="staffinfo">
+	select * from staff
+	<where>
+	<if test="staff.name != null and staff.name != ''">
+		and name like concat('%',#{staff.name},'%')
+	</if>
+	<if test="staff.account != null and staff.account != ''">
+		and account like concat('%',#{staff.account},'%')
+	</if><if test="staff.departid != null and staff.departid != ''">
+	and departid = #{staff.departid}
+	</if><if test="staff.status != null and staff.status != ''">
+		and status = #{staff.status}
+	</if><if test="staff.timeforjob != null and staff.timeforjob != ''">
+		and timeforjob  <![CDATA[ >= ]]>  #{staff.timeforjob}
+	</if>
+		<if test="jobid != null and jobid != '' ">
+			and departid = (select departid from role where id =
+			(select role_id from user_role where user_id = #{jobid}))
+		</if>
+	</where>
+	limit #{pagestart},#{pagesize}
+	</select>
+
+	<resultMap type="staff" id="staffwithrole">
+		<id property="jobid" column="jobid"/>
+		<result property="name" column="name" />
+		<result property="image" column="image" />
+		<result property="account" column="account" />
+		<result property="password" column="password" />
+		<result property="departid" column="departid" />
+		<result property="sex" column="sex"/>
+		<result property="birthday" column="birthday"/>
+		<result property="eduback" column="eduback"/>
+		<result property="mobile" column="mobile"/>
+		<result property="mail" column="mail"/>
+		<result property="address" column="address"/>
+		<result property="status" column="status"/>
+		<result property="timeforjob" column="timeforjob"/>
+		<result property="role_id" column="role_id"/>
+		<result property="descripetion" column="descripetion"/>
+		<result property="activecode" column="activecode"/>
+		<result property="salt" column="salt"/>
+		<!--这里的  association  必须放在result之后，否则会报  SAXParseException  的错误，标签顺序问题-->
+		<association property="department" column="departid"
+					 select="com.tw.mapper.DepartmentMapper.selDepartmentByDepartid" />
+		<!--<id property="departid" column="departid" />
+        <result property="departname" column="departname"/>
+        <result property="departparentid" column="departmentparentno"/>-->
+		<!-- select="com.tw.mapper.PermissionMapper.selPermissionByParentid" -->
+		<collection property="roleList" column="jobid" select="com.tw.mapper.RoleMapper.selRoleById" />
+	</resultMap>
+
+	<select id="selByJobid" parameterType="_int" resultMap="staffwithrole">
+	select * from staff where jobid = #{0}
+	</select>
+
+    <select id="selRoleByJobId" parameterType="int" resultType="role">
+		select * from role where id in (
+		select role_id from user_role where user_id = #{0}
+		)
+	</select>
+    <select id="selAllStaffJobId" resultType="java.lang.Integer">
+		select jobid from staff where jobid != (select user_id from user_role where role_id = 1) order by jobid asc
+	</select>
+	<select id="selStaffInfoByJobId" resultType="com.tw.pojo.Staff">
+		select * from staff where jobid = #{0}
+	</select>
+    <select id="selKaoqinManager" resultType="com.tw.pojo.Staff">
+		select * from staff where jobid = (
+		select user_id from user_role where role_id = (
+		select id from role where name like concat("人事部",'%')
+		)
+		)
+
+	</select>
+
+<!--	用户在激活后是否已经存在角色信息，如果有的话就直接不再分配信息-->
+    <select id="selExistRoleByJobId" resultType="role" parameterType="int">
+		select * from role where id in (
+		select role_id from user_role where user_id = #{0}
+		)
+
+	</select>
+
+    <select id="selStaffStatusNotJobing" resultType="com.tw.pojo.Staff">
+		select * from staff where status != "在职" and status != "待激活"
+	</select>
+	<select id="selDepartidByJobid" resultType="int" parameterType="int">
+		select departid from staff where jobid = #{0}
+	</select>
+
+	<update id="updateStaff" parameterType="staff">
+    update staff set sex=#{sex},eduback=#{eduback},departid = #{departid},timeforjob=#{timeforjob} ,descripetion=#{descripetion} where jobid=#{jobid}
+	</update>
+    <update id="activeStaffByJobId">
+		update staff set activecode = #{activecode} , status = "在职" where jobid = #{jobid}
+	</update>
+    <update id="updateStaffStatus">
+		update staff set status = #{status} where jobid = #{jobid}
+	</update>
+    <update id="updateStaffPasswordByJobId">
+		update staff set password = #{newpassword} where jobid = #{jobid}
+	</update>
+
+
+    <update id="updateStaffStatusByJobId">
+		update staff set status = #{status} where jobid = #{jobid}
+	</update>
+
+    <update id="updateStaffSelfInfo" parameterType="staff">
+		update staff set image = #{image},mobile=#{mobile},address=#{address},mail=#{mail},descripetion=#{descripetion} where jobid = #{jobid}
+	</update>
+
+    <update id="updateDownStaffRoleByJobId" parameterType="int">
+		update user_role set role_id = 5 where user_id = #{0}
+	</update>
+
+	<update id="updateUpStaffRoleByJobId" parameterType="int">
+		update user_role set role_id = (
+		select id from role where departid = #{departid}
+		) where user_id = #{jobid}
+	</update>
+
+	<update id="updateStaffRoleInfo">
+		update user_role set role_id = #{roleid} where user_id = #{jobid}
+	</update>
+
+    <update id="updateStaffDepartByJobId" parameterType="staff">
+		update staff set departid = #{departid} where jobid = #{jobid}
+	</update>
+
+</mapper>
+  
+

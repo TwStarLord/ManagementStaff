@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.tw.mapper.YiQingInfoMapper">
+
+    <select id="selectFiveTime" resultType="string">
+select distinct(time) from foreignyiqing order by time desc limit 5
+</select>
+
+    <select id="selectConfirmedCountByTime" parameterType="string" resultType="int">
+select sum(confirmedCount) from foreignyiqing where time = #{0}
+</select>
+
+    <select id="selectCuredCountByTime" parameterType="string" resultType="int">
+select sum(curedCount) from foreignyiqing where time = #{0}
+</select>
+
+    <select id="selectDeadCountByTime" parameterType="string" resultType="int">
+select sum(deadCount) from foreignyiqing where time = #{0}
+</select>
+
+
+    <!-- 查询当天的34个省市自治区的肺炎累计确诊人数 -->
+    <select id="selectConfirmCountSum" resultType="java.lang.Integer">
+	SELECT  sum(confirmCount) from nativeyiqing
+where time = CURDATE() and areaName is null;
+</select>
+
+    <!-- 查询国外当日确诊人数 -->
+    <select id="selectConfirmCountSumOfWorld" resultType="int">
+	SELECT  sum(confirmedCount) from foreignyiqing
+where time = CURDATE()
+</select>
+
+    <!-- 查询治愈人数 -->
+    <select id="selectCuredCountSum" resultType="java.lang.Integer">
+	SELECT  sum(curedCount) from nativeyiqing
+where time = CURDATE() and areaName is null
+</select>
+
+
+    <!-- 查询国外治愈人数 -->
+    <select id="selectCuredCountSumOfWorld" resultType="int">
+	SELECT  sum(curedCount) from foreignyiqing
+where time = CURDATE()
+</select>
+
+
+    <!-- 查询死亡人数 -->
+    <select id="selectDeadCountSum" resultType="int">
+	SELECT  sum(deadCount) from nativeyiqing
+where time = CURDATE() and areaName is null
+</select>
+
+
+    <!-- 查询国外死亡人数 -->
+    <select id="selectDeadCountSumOfWorld" resultType="int">
+	SELECT  sum(deadCount) from foreignyiqing
+where time = CURDATE()
+</select>
+
+
+    <!-- 查询34个省市自治区的名称 -->
+    <select id="selectPname" resultType="yiQingInfo">
+	SELECT * from nativeyiqing where time= CURDATE() and areaName is null ;
+</select>
+    <!-- 查询所有国家的名称 -->
+    <select id="selectCountryName" resultType="yiQingInfo">
+	SELECT provinceName from foreignyiqing where time= CURDATE()
+</select>
+
+    <!-- 根据用户选中省份查询该省的疫情 -->
+    <select id="selectyiqingByPName" resultType="yiQingInfo" parameterType="string" >
+
+		SELECT * from nativeyiqing where time= CURDATE()
+and areaName is null and provinceName=#{pName} ;
+</select>
+
+    <!-- 根据用户选中国家查询该国的疫情 -->
+    <select id="selectyiqingByCountryName" resultType="yiQingInfo" parameterType="string" >
+
+		SELECT currentConfirmedCount as confirmCountOfCountry,curedCount as curedCountOfCountry,deadCount as deadCountOfCountry from foreignyiqing where time= CURDATE() and provinceName=#{0}
+</select>
+
+    <!-- 根据省份查询该省的疫情 -->
+    <select id="selectCountYiqingByPName" resultType="yiQingInfo" parameterType="string">
+	SELECT * from nativeyiqing where time= CURDATE() and areaName is not null and provinceName= #{pName};
+</select>
+
+    <!--查询各省的前五地区确诊信息  -->
+    <select id="selectFiveConfrimByPName" resultType="yiQingInfo" parameterType="string">
+	SELECT  * from nativeyiqing where provinceName=#{pName} and areaName is not null
+and time = CURDATE()
+ORDER BY confirmCount desc limit 5
+</select>
+
+    <!--查询世界的前五地区确诊信息  -->
+    <select id="selectFiveConfrimOfWorld" resultType="worldInfo">
+	SELECT  * from foreignyiqing where time = CURDATE()
+ORDER BY currentConfirmedCount desc limit 5
+</select>
+
+    <!--查询各省的前五地区治愈信息  -->
+    <select id="selectFiveCuredByPName" resultType="yiQingInfo" parameterType="java.lang.String">
+	SELECT  * from nativeyiqing where provinceName=#{pName} and areaName is not null
+and time = CURDATE()
+ORDER BY curedCount desc limit 5
+</select>
+
+    <!--查询世界的前五地区治愈信息  -->
+    <select id="selectFiveCuredOfWorld" resultType="worldInfo">
+	SELECT  * from foreignyiqing where time = CURDATE()
+ORDER BY curedCount desc limit 5
+</select>
+
+    <!--查询各省的前五地区死亡信息  -->
+    <select id="selectFiveDeadByPName" resultType="yiQingInfo" parameterType="java.lang.String">
+	SELECT  * from nativeyiqing where provinceName=#{pName} and areaName is not null
+and time = CURDATE()
+ORDER BY deadCount desc limit 5
+</select>
+
+    <!--查询世界的前五地区死亡信息  -->
+    <select id="selectFiveDeadOfWorld" resultType="worldInfo">
+	SELECT  * from foreignyiqing where time = CURDATE()
+ORDER BY deadCount desc limit 5
+</select>
+
+    <!-- 查询国外的所有疫情数据：确诊，死亡，治愈 -->
+    <select id="selectDeadCountOfWorld" resultType="worldInfo">
+select sum(currentConfirmedCount) as currentConfirmedCount,
+sum(confirmedCount) as confirmedCount,sum(curedCount) as curedCount,
+sum(deadCount) as deadCount  from foreignyiqing where time = CURDATE()
+</select>
+
+    <!-- 查询疫情情况最严重的国家 -->
+    <select id="selectMostSeriousCountry" resultType="string">
+select provinceName from foreignyiqing order by currentConfirmedCount desc limit 1
+</select>
+
+    <!-- 查询疫情情况最不严重的国家 -->
+    <select id="selectLeastSeriousCountry" resultType="string">
+select provinceName from foreignyiqing order by currentConfirmedCount asc limit 1
+</select>
+
+</mapper>
+
+

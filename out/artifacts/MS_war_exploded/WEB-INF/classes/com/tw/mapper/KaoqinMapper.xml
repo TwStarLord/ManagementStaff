@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.tw.mapper.KaoqinMapper">
+
+    <resultMap type="kaoqin" id="kaoqininfo">
+        <id property="id" column="id"/>
+        <result property="jobid" column="jobid"/>
+        <result property="name" column="name" />
+        <result property="departid" column="departid" />
+        <result property="recordtime" column="recordtime" />
+        <result property="checkstatus" column="checkstatus" />
+        <result property="month" column="month" />
+        <result property="zhengchangshangban" column="zhengchangshangban" />
+        <result property="kuanggongday" column="kuanggongday"/>
+        <result property="qingjiaday" column="qingjiaday"/>
+        <result property="chuchaiday" column="chuchaiday"/>
+        <!--这里的  association  必须放在result之后，否则会报  SAXParseException  的错误，标签顺序问题-->
+        <association property="department" column="departid"
+                     select="com.tw.mapper.DepartmentMapper.selDepartmentByDepartid" />
+    </resultMap>
+    <insert id="insertKaoqinInfo" parameterType="kaoqin">
+        insert into kaoqin(jobid,name,departid,month,zhengchangshangban,kuanggongday,qingjiaday,chuchaiday) values(
+        #{jobid},#{name},#{departid},#{month},#{zhengchangshangban},#{kuanggongday},#{qingjiaday},#{chuchaiday}
+        )
+
+    </insert>
+    <insert id="insKaoqinRecordInfo" parameterType="kaoqin">
+        insert into kaoqinrecord (jobid,name,recordtime,checkstatus,month)
+        values(#{jobid},#{name},#{recordtime},#{checkstatus},#{month})
+    </insert>
+
+    <insert id="insertKaoqinInfoByJobIdAndMonth" parameterType="kaoqin">
+        insert into kaoqin(jobid,name,departid,month,zhengchangshangban,kuanggongday,qingjiaday,chuchaiday)
+        values(#{jobid},#{name},#{departid},#{month},#{zhengchangshangban},#{kuanggongday},#{qingjiaday},#{chuchaiday})
+    </insert>
+
+    <insert id="insertKaoqinChuchaiInfoByJobIdAndMonth">
+        insert into kaoqin(jobid,name,departid,month,zhengchangshangban,chuchaiday) values(
+        #{jobid},#{name},#{departid},#{month},1,#{chuchaidays}
+        )
+    </insert>
+
+    <update id="updateKaoqinInfoByJobIdAndMonth" parameterType="kaoqin">
+        update kaoqin set zhengchangshangban = zhengchangshangban + #{zhengchangshangban}
+        ,kuanggongday = kuanggongday + #{kuanggongday}
+        ,qingjiaday = qingjiaday + #{qingjiaday}
+        ,chuchaiday = chuchaiday + #{chuchaiday}
+        where jobid = #{jobid} and month = #{month}
+    </update>
+
+    <update id="updateKaoqinApplyStatus" parameterType="kaoqin">
+        update kaoqinrecord set checkstatus = #{checkstatus} where id = #{id}
+    </update>
+
+    <update id="updateKaoqinChuchaiInfoByJobIdAndMonth">
+        update kaoqin set chuchaiday = chuchaiday + #{days}
+        where jobid = #{jobid} and month = #{month}
+    </update>
+
+    <select id="selByJobId" parameterType="int" resultType="kaoqin">
+  select * from kaoqin where jobid = #{0}
+  </select>
+
+    <select id="selCount" parameterType="kaoqin" resultType="long">
+        select count(*) from kaoqin
+        <where>
+            <if test="name != null and name != ''">
+                and name like concat('%',#{name},'%')
+            </if>
+            <if test="departid != null and departid != ''">
+            and departid = #{departid}
+        </if>
+            <if test="month != null and month != ''">
+                and month = #{month}
+            </if>
+        </where>
+    </select>
+
+    <select id="selByPage" resultMap="kaoqininfo">
+        select * from kaoqin
+        <where>
+            <if test="kaoqin.name != null and kaoqin.name != ''">
+                and name like concat('%',#{kaoqin.name},'%')
+            </if>
+            <if test="kaoqin.departid != null and kaoqin.departid != ''">
+                and departid = #{kaoqin.departid}
+            </if>
+            <if test="kaoqin.month != null and kaoqin.month != ''">
+                and month = #{kaoqin.month}
+            </if>
+        </where>
+        limit #{pagestart},#{pagesize}
+    </select>
+
+    <select id="selByKaoqinInfoId" parameterType="int" resultType="kaoqin">
+        select * from kaoqin where id = #{0}
+    </select>
+    <select id="selById" parameterType="int" resultType="kaoqin">
+        select * from kaoqin where id = #{0}
+    </select>
+    <select id="selByJobIdAndMonth" resultType="kaoqin" parameterType="kaoqin">
+        select * from kaoqin where jobid = #{jobid} and month = #{month}
+    </select>
+
+    <select id="selKaoqinInfoByJobIdAndMonth" resultType="kaoqin">
+        select * from kaoqin where jobid = #{jobid} and month = #{startMonth}
+    </select>
+
+    <select id="selKaoqinRecordCount" resultType="long">
+        select count(*) from kaoqinrecord
+    </select>
+
+    <select id="selAllKaoqinRecordByPage" resultType="kaoqin">
+        select * from kaoqinrecord
+    </select>
+
+
+    <select id="selKaoqinRecordById" resultType="kaoqin" parameterType="int">
+        select * from kaoqinrecord where id = #{0}
+    </select>
+
+    <select id="selSelfCount" parameterType="int" resultType="long">
+        select count(*) from kaoqin where jobid = #{0}
+    </select>
+
+    <select id="selSelfKaoqinInfo" resultMap="kaoqininfo">
+        select * from kaoqin where jobid = #{jobid} limit #{pagestart},#{pagesize}
+    </select>
+
+    <select id="selSelfKaoqinRecordCount" resultType="long" parameterType="int">
+        select count(*) from kaoqinrecord where jobid = #{0}
+    </select>
+
+    <select id="selSelfKaoqinRecord" resultType="kaoqin" parameterType="int">
+        select * from kaoqinrecord where jobid = #{jobid} limit #{pagestart},#{pagesize}
+    </select>
+
+</mapper>

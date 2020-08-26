@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+  <mapper namespace="com.tw.mapper.QingjiaMapper">
+
+  <resultMap type="qingjia" id="qingjiainfo">
+    <id property="id" column="id"/>
+    <result property="jobid" column="jobid"/>
+    <result property="name" column="name" />
+    <result property="departid" column="departid" />
+    <result property="departname" column="departname" />
+    <result property="starttime" column="starttime" />
+    <result property="endtime" column="endtime" />
+    <result property="leavedays" column="leavedays" />
+    <result property="status" column="status"/>
+    <result property="cause" column="cause"/>
+    <result property="descripetion" column="descripetion"/>
+    <result property="subdate" column="subdate"/>
+    <result property="shenpi" column="shenpi"/>
+    <!--这里的  association  必须放在result之后，否则会报  SAXParseException  的错误，标签顺序问题-->
+    <association property="department" column="departid"
+                 select="com.tw.mapper.DepartmentMapper.selDepartmentByDepartid" />
+  </resultMap>
+
+  <select id="selByJobId" parameterType="int" resultType="qingjia">
+  select * from qingjia where jobid = #{0}
+  </select>
+
+  <insert id="insertQingjiaInfo" parameterType="qingjia" keyProperty="id" useGeneratedKeys="true">
+    insert into qingjia(jobid,name,departid,starttime,endtime,leavedays,status,cause,descripetion,subdate,shenpi)
+    values(#{jobid},#{name},#{departid},#{starttime},#{endtime},#{leavedays},#{status},#{cause},#{descripetion},
+    #{subdate},#{shenpi})
+  </insert>
+
+  <update id="updateQingjiaInfo" parameterType="qingjia">
+  update qingjia set starttime=#{starttime},endtime=#{endtime},status=#{status},cause=#{cause},shenpi=#{shenpi} where jobid=#{jobid}
+  </update>
+
+    <update id="updateQingjiaApplyStatus" parameterType="qingjia" keyProperty="id" useGeneratedKeys="true">
+        update qingjia set status =#{status},shenpi = #{shenpi} where id = #{id}
+    </update>
+
+    <update id="updateQingjiaInfoById">
+        update qingjia set endtime = #{endtime},status = #{status} where id = #{id}
+    </update>
+
+    <select id="selByJobid" resultType="qingjia">
+  select * from qingjia where jobid = #{0}
+  </select>
+  
+  <select id="selCount" parameterType="qingjia" resultType="long">
+  select count(*) from qingjia
+  <where>
+  <if test="name != null and name != ''">   <!-- 可以使用and naem like concat('%',#{name},'%') -->
+  and name like concat('%',#{name},'%')
+  </if>
+  <if test="departid != null and departid != ''">
+    and departid = #{departid}
+  </if>
+  <if test="status != null and status != ''">
+    and status = #{status}
+  </if>
+  <if test="starttime != null and starttime != ''">
+  and starttime = #{starttime}
+  </if>
+  <if test="endtime != null and endtime != ''">
+    and endtime = #{endtime}
+  </if>
+  </where>
+  </select>
+  
+  <select id="selByPage" resultMap="qingjiainfo">
+  select * from qingjia
+    <where>
+      <if test="name != null and name != ''">   <!-- 可以使用and naem like concat('%',#{name},'%') -->
+        and name like concat('%',#{name},'%')
+      </if>
+      <if test="departid != null and departid != ''">
+        and departid = #{departid}
+      </if>
+      <if test="status != null and status != ''">
+        and status = #{status}
+      </if>
+      <if test="starttime != null and starttime != ''">
+        and starttime = #{starttime}
+      </if>
+      <if test="endtime != null and endtime != ''">
+        and endtime = #{endtime}
+      </if>
+    </where>
+  limit #{pagestart},#{pagesize}
+  </select>
+  <select id="selById" resultType="qingjia" parameterType="int">
+    select  * from qingjia where id = #{0}
+  </select>
+
+
+  <select id="selJobIdByQingjiaId" resultType="int" parameterType="long">
+        select jobid from qingjia where id = #{0}
+  </select>
+
+    <select id="selQingjiaInfoById" resultType="qingjia" parameterType="long">
+        select * from qingjia where id = #{0}
+    </select>
+
+    <select id="selSelfCount" resultType="long" parameterType="int">
+    select count(*) from qingjia where jobid = #{0}
+    </select>
+
+  <select id="selSelfQingjiaInfo" resultMap="qingjiainfo" parameterType="int">
+    select * from qingjia where jobid = #{jobid} limit #{pagestart},#{pagesize}
+  </select>
+
+  <select id="selQingjiaInfoByNow" resultType="qingjia">
+    select * from qingjia where starttime = CURDATE() and status = "同意"
+  </select>
+
+</mapper>
+  

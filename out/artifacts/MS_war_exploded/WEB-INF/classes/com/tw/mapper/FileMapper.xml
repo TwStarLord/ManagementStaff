@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+  <mapper namespace="com.tw.mapper.FileMapper">
+  
+  <select id="selById" resultType="file" parameterType="_int">
+  select * from fileresource where file_id = #{0}
+  </select>
+  
+  <select id="selCount" resultType="long" parameterType="int">
+  select count(*) from fileresource
+  <where>
+  <if test="file_id!='' and file_id!=null">
+  and file_id = #{file_id}
+  </if>
+  </where>
+  </select>
+  
+  <select id="selByPage" resultType="file">
+  select * from fileresource
+  <where>
+  <if test="file_id !='' and file_id !=null">
+  and file_id = #{file_id}
+  </if>
+  </where>
+  limit #{pagestart},#{pagesize}
+  </select>
+
+    <select id="selFileUrlByFileId" resultType="file" parameterType="int">
+        select file_name,file_url from fileresource where file_id =#{0}
+    </select>
+
+    <insert id="insFileInfo" parameterType="file">
+  insert into fileresource values(default,#{file_name},#{file_uuid_name},#{file_url},#{file_size},#{file_date},#{file_manager})
+  </insert>
+  
+  <delete id="deleteBatchFile" parameterType="int">
+  delete from fileresource where file_id = #{0}
+  </delete>
+  
+  </mapper>

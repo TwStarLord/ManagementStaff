@@ -1,0 +1,230 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	   xmlns:aop="http://www.springframework.org/schema/aop"
+	   xmlns:context="http://www.springframework.org/schema/context"
+	   xmlns:mvc="http://www.springframework.org/schema/mvc"
+	   xmlns:tx="http://www.springframework.org/schema/tx"
+	   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	   xmlns:task="http://www.springframework.org/schema/task"
+	   xsi:schemaLocation="http://www.springframework.org/schema/aop
+		http://www.springframework.org/schema/aop/spring-aop-4.1.xsd
+		http://www.springframework.org/schema/beans 
+		http://www.springframework.org/schema/beans/spring-beans-4.1.xsd
+		http://www.springframework.org/schema/context
+		http://www.springframework.org/schema/context/spring-context-4.1.xsd
+		http://www.springframework.org/schema/mvc
+		http://www.springframework.org/schema/mvc/spring-mvc-4.1.xsd
+		http://www.springframework.org/schema/tx
+		http://www.springframework.org/schema/tx/spring-tx-4.1.xsd http://www.springframework.org/schema/task http://www.springframework.org/schema/task/spring-task.xsd"
+	   default-autowire="byName">
+	<task:annotation-driven/>
+		<!-- 扫描注解 这里需要加上注解扫描，否则无法执行定时任务  -->
+	<context:component-scan base-package="com.tw.service.impl,com.tw.quartz"></context:component-scan>
+<!-- 软编码，方便部署项目 -->
+	<context:property-placeholder location="classpath:*.properties"/>
+	
+	<bean id="dataSource" class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+	<property name="driverClassName" value="${jdbc.driver}"></property>
+	<property name="url" value="${jdbc.url}"></property>
+	<property name="username" value="${jdbc.username}"></property>
+	<property name="password" value="${jdbc.password}"></property>
+	</bean>
+
+<!--	邮件接口-->
+	<bean id="javaMailSender" class="org.springframework.mail.javamail.JavaMailSenderImpl">
+		<property name="host" value="smtp.163.com"/>
+		<property name="username" value="twstarlord@163.com"/>
+		<property name="password" value="FBNRGHNARNJVKWII"/>
+		<property name="port" value="25" />
+		<property name="defaultEncoding" value="UTF-8"/>
+		<property name="javaMailProperties">
+			<props>
+				<prop key="mail.smtp.auth">true</prop>
+<!--				<prop key="mail.smtp.timeout">mail.smtp.timeout</prop>-->
+			</props>
+		</property>
+	</bean>
+	<!-- 创建sqlsessionfactory对象 -->
+	<bean id="factory" class="org.mybatis.spring.SqlSessionFactoryBean">
+	<property name="typeAliasesPackage" value="com.tw.pojo" ></property>
+	<property name="dataSource" ref="dataSource"></property>
+	</bean>
+	
+	<bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+	<!-- 通过扫描生成了staffmapper -->
+		<property name="basePackage" value="com.tw.mapper"></property>
+		<property name="sqlSessionFactoryBeanName" value="factory"></property>
+	</bean>
+	
+	<!-- 通过set方法注入  与 driverClassname方式相同-->
+	<!-- 给属性注入的前提时该属性所在类必须交由spring管理 -->
+	<!-- 在xml文件中写这个必须有get/set方法，而且和注解不能共存 -->
+	<!-- <bean id="staffService" class="com.tw.service.impl.StaffServiceImpl">
+		<property name="staffMapper" ref="staffMapper"></property>
+	</bean> -->
+	
+	<!-- <bean id="mybefore" class="com.tw.advice.MyBefore"></bean>
+	<bean id="myafter" class="com.tw.advice.MyAfter"></bean> -->
+	
+	<!-- 事务管理器 -->
+    <bean id="txManage" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+    	<property name="dataSource" ref="dataSource"></property>
+    </bean>
+    
+    <!-- 声明式事务 -->
+    <tx:advice id="txAdvice" transaction-manager="txManage">
+    	<tx:attributes>
+    		<tx:method name="ins*"/>
+    		<tx:method name="del*"/>
+    		<tx:method name="upd*"/>
+    		<tx:method name="*" read-only="true"/>
+    		
+    	</tx:attributes>
+    </tx:advice>
+	
+	<!-- 改用cglib动态代理  开启aop对类的代理-->
+	<aop:aspectj-autoproxy proxy-target-class="true"></aop:aspectj-autoproxy>
+	<!-- aop -->
+	<aop:config>
+	    <!-- 变成切点之后，该方法所在类应该就需要使用动态代理技术，用代理对象的增强办法来达到事务处理的效果，即事务的成功提交，事务的错误回滚操作，自动注入时可能会有错误 -->
+	    <!-- 此处变成切点之后其实就已经交由spring管理，从webapplication中取出时已经是一个代理对象了，默认的jdk代理会导致代理对象和真实对象无法转换，所以需要使用cglib动态代理技术（important）需要时刻关注 -->
+		<aop:pointcut expression="execution(* com.tw.service.impl.*.*(..))" id="mypoint"/>
+		<aop:advisor advice-ref="txAdvice" pointcut-ref="mypoint"/>
+	</aop:config>
+
+	<bean  id="staffSessionFilter" class="com.tw.shiro.filters.StaffSessionFilter" />
+
+
+	<bean id="shiroFilter" class="org.apache.shiro.spring.web.ShiroFilterFactoryBean">
+		<property name="securityManager" ref="securityManager" />
+		<property name="loginUrl" value="/Login/login" />
+		<property name="successUrl" value="/Login/ToIndex" />
+		<property name="unauthorizedUrl" value="/refuse.jsp" />
+
+		<property name="filters">
+			<map>
+				<entry key="authc" value-ref="formAuthenticationFilter" />
+				<entry key="userSession" value-ref="staffSessionFilter" />
+			</map>
+
+		</property>
+		<property name="filterChainDefinitions">
+			<value>
+				/ActiveSuccess.jsp = anon
+				/Login/CheckAccount = anon
+				/Login/CheckMail = anon
+				/findAllProvinces = anon
+				/Login/Regist = anon
+				/findAreaByCityId = = anon
+				/findCityByProId = = anon
+				/StaffInfo/ActiveStaff = anon
+				/layui/** = anon
+				/resources/** = anon
+				/login.jsp = anon
+				/regist.jsp = anon
+				/getVerifyCode = anon
+				/Login/checkVerifyCode = anon
+<!--				/Department/ToFindAllDepartmentInfo = perms[depart:query]-->
+<!--				/Login/login = authc-->
+				/Login/logout = logout
+				<!--/login.jsp = user-->
+				/Login/ToIndex = user
+<!--				/Login/login = user-->
+				/** = authc,userSession  <!--这样也可以实现结合shiro将session存储-->
+			</value>
+		</property>
+	</bean>
+
+<!--	处理unauthorizedUrl没有起作用的问题  怎么感觉不加好像也没得问题呢？  2020.4.20 记录  -->
+	<!--<bean class="org.springframework.web.servlet.handler.SimpleMappingExceptionResolver">
+		<property name="exceptionMappings">
+			<props>
+				<prop key="org.apache.shiro.authz.UnauthorizedException">/refuse.jsp</prop>
+			</props>
+		</property>
+	</bean>-->
+
+	<bean id="securityManager" class="org.apache.shiro.web.mgt.DefaultWebSecurityManager">
+		<property name="realm" ref="loginRealm" />
+		<!--注入缓存管理器-->
+		<property name="cacheManager" ref="cacheManagerOfShiro" />
+		<!-- 注入session管理器 -->
+		<property name="sessionManager" ref="sessionManager" />
+		<!-- 记住我 -->
+		<property name="rememberMeManager" ref="rememberMeManager"/>
+	</bean>
+
+	 <!--缓存管理器-->
+	<bean id="cacheManagerOfShiro" class="org.apache.shiro.cache.ehcache.EhCacheManager">
+		<property name="cacheManagerConfigFile" value="classpath:shiro-ehcache.xml"/>
+	</bean>
+
+	<!--会话管理器-->
+	<bean id="sessionManager" class="org.apache.shiro.web.session.mgt.DefaultWebSessionManager">
+		<!-- session的失效时长，单位毫秒 -->
+		<property name="globalSessionTimeout" value="600000"/>
+		<!-- 删除失效的session -->
+		<property name="deleteInvalidSessions" value="true"/>
+	</bean>
+
+	<!-- 凭证匹配器 -->
+	<bean id="credentialsMatcher"
+		  class="org.apache.shiro.authc.credential.HashedCredentialsMatcher">
+		<property name="hashAlgorithmName" value="md5" />
+		<property name="hashIterations" value="1" />
+	</bean>
+
+	<bean id="loginRealm"  class="com.tw.shiro.realms.LoginRealm" >
+		<property name="credentialsMatcher" ref="credentialsMatcher"/>
+	</bean>
+
+	<bean id="formAuthenticationFilter" class="com.tw.shiro.filters.StaffLoginAuthenticationFilter ">
+		<property name="usernameParam" value="account" />
+		<property name="passwordParam" value="password" />
+		<!--记住我选项-->
+		<property name="rememberMeParam" value="remember"/>
+	</bean>
+
+
+	<!-- 记住我cookie -->
+	<bean id="rememberMeCookie" class="org.apache.shiro.web.servlet.SimpleCookie">
+		<!--设置只有http的连接才可以使用cookie-->
+		<property name="httpOnly" value="true" />
+		<!-- rememberMe是cookie的名字 -->
+		<constructor-arg value="rememberMe" />
+		<!-- 记住我cookie生效时间30天 -->
+		<property name="maxAge" value="2592000" />
+	</bean>
+
+	<!-- rememberMeManager管理器，写cookie，取出cookie生成用户信息 -->
+	<bean id="rememberMeManager" class="org.apache.shiro.web.mgt.CookieRememberMeManager">
+		<property name="cookie" ref="rememberMeCookie" />
+	</bean>
+
+
+<!--	quartz任务调度配置-->
+<!--	<bean name="timeTask" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">-->
+<!--		<property name="targetObject">-->
+<!--			<bean class="com.tw.quartz.TimeTask"/>-->
+<!--		</property>-->
+<!--		<property name="targetMethod" value="executeJob"/>-->
+<!--		&lt;!&ndash;作业不并发调度&ndash;&gt;-->
+<!--		<property name="concurrent" value="false"/>-->
+<!--	</bean>-->
+
+<!--	&lt;!&ndash;Cron表达式触发器&ndash;&gt;-->
+<!--	<bean id="cronTrigger" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">-->
+<!--		<property name="jobDetail" ref="timeTask"/>-->
+<!--		<property name="cronExpression" value="0 * 14 * * ?"/> &lt;!&ndash;在这里修改cron表达式，每个月底自动计算工资信息，并生成Excel文件通过邮件发送&ndash;&gt;-->
+<!--	</bean>-->
+
+<!--	<bean class="org.springframework.scheduling.quartz.SchedulerFactoryBean">-->
+<!--		 <property name="triggers">-->
+<!--			 <list>-->
+<!--		&lt;!&ndash;<ref bean="simpleTrigger"/>&ndash;&gt;-->
+<!--				 <ref bean="cronTrigger"/>-->
+<!--			</list>-->
+<!--		</property>-->
+<!--	</bean>-->
+
+</beans>

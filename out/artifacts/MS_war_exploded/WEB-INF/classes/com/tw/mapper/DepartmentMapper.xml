@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+  <mapper namespace="com.tw.mapper.DepartmentMapper">
+  <!-- <resultMap type="Funs" id="BaseResultMap">
+		<id property="funId" column="fun_id" />
+		<result property="funName" column="fun_name" />
+		<result property="funUrl" column="fun_url" />
+		<result property="funPid.funId" column="fun_pid" />
+		<result property="funTarget" column="fun_target" />
+	</resultMap> -->
+	
+	<!-- N+1方式查询   后期可以使用多表联合查询-->
+	<resultMap type="department" id="depart">
+	<id property="departid" column="departid" />
+	<result property="departname" column="departname" />
+	<result property="departparentid" column="departmentparentno" />
+	<!-- <association property="cartGoods" column="cart_goods" javaType="Goods" select="com.phonemarket.mapper.GoodsMapper.findGoodsById"></association> -->
+	<collection property="stafflist" column="departid"  select="com.tw.mapper.StaffMapper.selByDepartId" ></collection>
+	</resultMap>
+  
+  <select id="selAllDepartment" resultMap="depart">
+  select * from department
+  </select>
+
+    <select id="selDepartmentByDepartid" parameterType="int" resultType="department">
+        select departid departid,departname departname,departmentparentno departparentid from department where departid = #{0}
+    </select>
+
+    <!--<select id="getAllDepartmentInfo" resultType="department">
+        select * from department
+    </select>-->
+
+  </mapper>

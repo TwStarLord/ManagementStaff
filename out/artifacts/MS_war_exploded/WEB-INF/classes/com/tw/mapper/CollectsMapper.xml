@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+  <mapper namespace="com.tw.mapper.CollectsMapper">
+  
+  <select id="selByJobId" parameterType="int" resultType="collects">
+  select * from staffcollection where staffid = #{0}
+  </select>
+  
+  <insert id="insertCollects" parameterType="collects" useGeneratedKeys="true" keyProperty="id">
+  insert into collects(staffid,noticeid) values(#{staffid},#{noticeid})
+  </insert>
+  
+  <delete id="deleteCollects" parameterType="collects">
+  delete from collects where staffid = #{staffid} and noticeid = #{noticeid}
+  </delete>
+  
+  </mapper>
